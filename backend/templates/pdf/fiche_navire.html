@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Fiche Technique Navire</title>
+
+    <style>
+        /* ============================
+            STYLES GÉNÉRAUX
+        ============================ */
+        @page {
+            size: A4;
+            margin: 2cm;
+            
+            @bottom-center {
+                content: "Page " counter(page) " sur " counter(pages);
+                font-size: 10px;
+                color: #9ca3af;
+            }
+        }
+
+        @page :first {
+            @bottom-center {
+                content: "";
+            }
+        }
+
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 12px;
+            color: #333;
+            line-height: 1.4;
+            margin: 0;
+            padding: 0;
+        }
+
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #1e3a8a;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+
+        .logo-container {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .logo {
+            max-height: 70px;
+            width: auto;
+        }
+
+        .title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1e3a8a;
+            margin-top: 8px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            font-weight: bold;
+            color: #374151;
+            background-color: #f8fafc;
+            padding: 8px 12px;
+            border-left: 4px solid #3b82f6;
+            margin: 20px 0 12px 0;
+            page-break-after: avoid;
+        }
+
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+            page-break-inside: avoid;
+        }
+
+        .info-table td {
+            padding: 8px 10px;
+            vertical-align: top;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .label {
+            font-weight: bold;
+            width: 35%;
+            color: #4b5563;
+            background-color: #f9fafb;
+        }
+
+        .section {
+            margin-bottom: 20px;
+            page-break-inside: avoid;
+        }
+
+        .list-item {
+            margin: 6px 0;
+            font-weight: bold;
+        }
+
+        .list-detail {
+            margin-left: 20px;
+            font-size: 11px;
+            font-style: italic;
+            color: #6b7280;
+            margin-bottom: 8px;
+        }
+
+        .footer {
+            text-align: center;
+            font-size: 10px;
+            color: #9ca3af;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 15px;
+            margin-top: 30px;
+            page-break-before: avoid;
+        }
+
+        /* UTILES */
+        .empty { 
+            color: #9ca3af; 
+            font-style: italic; 
+        }
+        
+        .text-center { 
+            text-align: center; 
+        }
+        
+        .content { 
+            padding: 20px;
+        }
+        
+        .page-break { 
+            page-break-before: always; 
+        }
+
+        /* Styles spécifiques à l'image du navire */
+        .navire-image {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            max-height: 250px;
+            object-fit: contain;
+        }
+
+        /* Styles pour les métadonnées */
+        .meta-container {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+
+        .meta-row {
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .meta-row:last-child {
+            border-bottom: none;
+        }
+
+        .meta-name {
+            font-weight: 500;
+            color: #4b5563;
+            padding: 8px 0;
+            vertical-align: top;
+            width: 35%;
+        }
+
+        .meta-value {
+            padding: 8px 0;
+            vertical-align: top;
+            width: 65%;
+        }
+
+        /* Styles pour les URL seulement */
+        .meta-url {
+            color: #2563eb;
+            word-break: break-all;
+            font-size: 11px;
+        }
+
+        /* Styles pour les images dans les métadonnées */
+        .meta-image {
+            max-width: 100%;
+            max-height: 150px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            margin: 5px 0;
+            object-fit: contain;
+        }
+
+        /* Styles pour les liens de téléchargement */
+        .download-link {
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .download-link:hover {
+            text-decoration: underline;
+        }
+
+        .file-icon {
+            font-size: 14px;
+        }
+
+        /* Badge pour type de fichier */
+        .file-badge {
+            display: inline-block;
+            background-color: #f3f4f6;
+            color: #6b7280;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            margin-left: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="content">
+        <div class="header">
+            {% if has_logo and logo_base64 %}
+            <div class="logo-container">
+                <img src="data:image/png;base64,{{ logo_base64 }}" class="logo" alt="Logo CFIM">
+            </div>
+            {% endif %}
+            <div class="text-center" style="font-size: 14px; color: #6b7280;">
+                CENTRE DE FUSION D'INFORMATIONS MARITIMES (CFIM)
+            </div>
+            <div class="title">FICHE TECHNIQUE DU NAVIRE</div>
+        </div>
+
+        <div class="section">
+            <div class="subtitle">INFORMATIONS GÉNÉRALES</div>
+            <table class="info-table">
+                <tr>
+                    <td class="label">Nom du navire:</td>
+                    <td>{{ navire.nom_navire|default:"<span class='empty'>Non renseigné</span>" }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Immatriculation:</td>
+                    <td>{{ navire.num_immatricule|default:"<span class='empty'>Non renseigné</span>" }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Type:</td>
+                    <td>{{ navire.type_navire|default:"<span class='empty'>Non renseigné</span>" }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Année construction:</td>
+                    <td>{{ navire.annee_de_construction|default:"<span class='empty'>Non renseigné</span>" }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Lieu construction:</td>
+                    <td>{{ navire.lieu_de_construction|default:"<span class='empty'>Non renseigné</span>" }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Nature coque:</td>
+                    <td>{{ navire.nature_coque|default:"<span class='empty'>Non renseigné</span>" }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Passagers max:</td>
+                    <td>{{ navire.nbr_passager|default:"<span class='empty'>Non renseigné</span>" }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Équipage:</td>
+                    <td>{{ navire.nbr_equipage|default:"<span class='empty'>Non renseigné</span>" }}</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div class="section">
+            <div class="subtitle">IMAGE DU NAVIRE</div>
+            {% if has_navire_image %}
+                <div class="text-center" style="margin-top: 15px; margin-bottom: 15px;">
+                    <img src="{{ navire_image_base64 }}" 
+                         class="navire-image" 
+                         alt="Image du Navire: {{ navire.nom_navire }}">
+                </div>
+            {% else %}
+                <p class="empty">Aucune image de navire disponible.</p>
+            {% endif %}
+        </div>
+        
+        <div class="section">
+            <div class="subtitle">PROPRIÉTAIRE</div>
+            {% if navire.proprietaire %}
+            <table class="info-table">
+                <tr>
+                    <td class="label">Nom:</td>
+                    <td>{{ navire.proprietaire.nom_proprietaire|default:"<span class='empty'>Non renseigné</span>" }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Type:</td>
+                    <td>{{ proprietaire_type_label|default:"<span class='empty'>Non renseigné</span>" }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Contact:</td>
+                    <td>{{ navire.proprietaire.contact|default:"<span class='empty'>Non renseigné</span>" }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Adresse:</td>
+                    <td>{{ navire.proprietaire.adresse|default:"<span class='empty'>Non renseigné</span>" }}</td>
+                </tr>
+            </table>
+            {% else %}
+            <p class="empty">Aucun propriétaire enregistré</p>
+            {% endif %}
+        </div>
+
+        <div class="section">
+            <div class="subtitle">ACTIVITÉS</div>
+            {% for activite in navire.activites.all %}
+                <div class="list-item">- {{ activite.nom_activite }}</div>
+            {% empty %}
+                <p class="empty">Aucune activité enregistrée</p>
+            {% endfor %}
+        </div>
+
+        <div class="section">
+            <div class="subtitle">ASSURANCES</div>
+            {% for assurance in navire.assurances.all %}
+                <div class="list-item">- {{ assurance.assureur.nom_assureur|default:"Assureur non renseigné" }}</div>
+                <div class="list-detail">
+                    Période : du <b>{{ assurance.date_debut|date:"d/m/Y" }}</b>
+                    au <b>{{ assurance.date_fin|date:"d/m/Y" }}</b>
+                </div>
+            {% empty %}
+                <p class="empty">Aucune assurance enregistrée</p>
+            {% endfor %}
+        </div>
+
+        <div class="section">
+            <div class="subtitle">MOTEURS</div>
+            {% for moteur in navire.moteurs.all %}
+                <div class="list-item">- {{ moteur.nom_moteur }} ({{ moteur.puissance }} CV)</div>
+            {% empty %}
+                <p class="empty">Aucun moteur enregistré</p>
+            {% endfor %}
+        </div>
+
+        <div class="section">
+            <div class="subtitle">VISITES TECHNIQUES</div>
+            {% for visite in navire.visites.all %}
+                <div class="list-item">- {{ visite.lieu_visite }}</div>
+                <div class="list-detail">
+                    Date visite : <b>{{ visite.date_visite|date:"d/m/Y" }}</b><br>
+                    Expiration permis : <b>{{ visite.expiration_permis|date:"d/m/Y" }}</b>
+                </div>
+            {% empty %}
+                <p class="empty">Aucune visite enregistrée</p>
+            {% endfor %}
+        </div>
+
+        <div class="section">
+            <div class="subtitle">DOSSIERS</div>
+            {% for dossier in navire.dossiers.all %}
+                <div class="list-item">- {{ dossier.type_dossier }}</div>
+                <div class="list-detail">
+                    Émis le : <b>{{ dossier.date_emission|date:"d/m/Y" }}</b>
+                </div>
+            {% empty %}
+                <p class="empty">Aucun dossier enregistré</p>
+            {% endfor %}
+        </div>
+
+        <div class="section">
+            <div class="subtitle">DOCUMENTS ET MÉTADONNÉES</div>
+            {% if meta_donnees %}
+                <table class="meta-container">
+                    {% for meta in meta_donnees %}
+                    <tr class="meta-row">
+                        <td class="meta-name">{{ meta.nom_meta_donne }}</td>
+                        <td class="meta-value">
+                            {% if meta.type_meta_donne == 'BOOLEEN' %}
+                                {% if meta.valeur_meta_donne == 'True' or meta.valeur_meta_donne == 'true' or meta.valeur_meta_donne == True %}
+                                    Oui
+                                {% else %}
+                                    Non
+                                {% endif %}
+                            
+                            {% elif meta.type_meta_donne == 'IMAGE' %}
+                                {% if meta.valeur_meta_donne %}
+                                    <img src="{{ meta.valeur_meta_donne }}" 
+                                         class="meta-image" 
+                                         alt="{{ meta.nom_meta_donne }}">
+                                {% else %}
+                                    <span class="empty">Image non disponible</span>
+                                {% endif %}
+                            
+                            {% elif meta.type_meta_donne == 'FICHIER' %}
+                                {% if meta.valeur_meta_donne %}
+                                    <a href="{{ meta.valeur_meta_donne }}" 
+                                       class="download-link" 
+                                       target="_blank">
+                                        Télécharger le fichier
+                                    </a>
+                                    <div class="file-badge">Fichier</div>
+                                {% else %}
+                                    <span class="empty">Fichier non disponible</span>
+                                {% endif %}
+                            
+                            {% elif meta.type_meta_donne == 'URL' %}
+                                <a href="{{ meta.valeur_meta_donne }}" 
+                                   class="meta-url" 
+                                   target="_blank">
+                                    {{ meta.valeur_meta_donne|default:""|truncatechars:60 }}
+                                </a>
+                            
+                            {% elif meta.type_meta_donne == 'DATE' %}
+                                {{ meta.valeur_meta_donne|date:"d/m/Y"|default:meta.valeur_meta_donne }}
+                            
+                            {% elif meta.type_meta_donne == 'TEXTE' %}
+                                {{ meta.valeur_meta_donne|default:"-"|linebreaksbr }}
+                            
+                            {% else %}
+                                {{ meta.valeur_meta_donne|default:"-" }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            {% else %}
+                <p class="empty">Aucune information complémentaire</p>
+            {% endif %}
+        </div>
+
+        <div class="footer">
+            Document généré le {{ date_generation }} • CFIM Madagascar
+        </div>
+    </div>
+</body>
+</html>
