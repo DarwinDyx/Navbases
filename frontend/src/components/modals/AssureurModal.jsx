@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { HiPlus, HiPencil, HiTrash, HiX, HiCheck, HiOfficeBuilding } from "react-icons/hi";
 import axios from "axios";
-
-const API_BASE_URL = "http://127.0.0.1:8000/api/assureurs/";
+import { API_BASE_URL } from "../../config/api"; // Ajustez le chemin selon votre structure
 
 const AssureurModal = ({ isOpen, onClose, onSuccess }) => {
     const [assureurs, setAssureurs] = useState([]);
@@ -12,12 +11,15 @@ const AssureurModal = ({ isOpen, onClose, onSuccess }) => {
     const [error, setError] = useState(null);
     const [formLoading, setFormLoading] = useState(false);
 
+    // Constante pour l'URL complète des assureurs
+    const ASSUREURS_URL = `${API_BASE_URL}/assureurs/`;
+
     // --- Fonctions de base ---
 
     const fetchAssureurs = async () => {
         setIsLoading(true);
         try {
-            const res = await axios.get(API_BASE_URL);
+            const res = await axios.get(ASSUREURS_URL);
             setAssureurs(res.data);
             setError(null);
         } catch (err) {
@@ -55,7 +57,7 @@ const AssureurModal = ({ isOpen, onClose, onSuccess }) => {
         setError(null);
 
         const method = editingId ? "PUT" : "POST";
-        const url = editingId ? `${API_BASE_URL}${editingId}/` : API_BASE_URL;
+        const url = editingId ? `${ASSUREURS_URL}${editingId}/` : ASSUREURS_URL;
 
         try {
             const res = await axios({
@@ -96,7 +98,7 @@ const AssureurModal = ({ isOpen, onClose, onSuccess }) => {
         setError(null);
 
         try {
-            await axios.delete(`${API_BASE_URL}${id}/`);
+            await axios.delete(`${ASSUREURS_URL}${id}/`);
             
             await fetchAssureurs();
             onSuccess(); 
@@ -111,7 +113,6 @@ const AssureurModal = ({ isOpen, onClose, onSuccess }) => {
     };
 
     if (!isOpen) return null;
-
 
     return (
         <div 

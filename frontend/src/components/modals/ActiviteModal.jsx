@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { FaList, FaPlus, FaEdit, FaTrash, FaSave, FaTimes, FaSpinner, FaCheckCircle } from "react-icons/fa";
-
-const API_BASE_URL = "http://127.0.0.1:8000/api/activites/";
+import { API_BASE_URL } from "../../config/api"; // Ajustez le chemin selon votre structure
 
 /**
  * Composant Modale pour la gestion complète (CRUD) des Activités.
@@ -18,12 +17,15 @@ const ActiviteModal = ({ isOpen, onClose, onSuccess }) => {
     const [error, setError] = useState(null);
     const [formLoading, setFormLoading] = useState(false);
 
+    // Constante pour l'URL complète des activités
+    const ACTIVITES_URL = `${API_BASE_URL}/activites/`;
+
     // --- Fonctions de base ---
 
     const fetchActivites = async () => {
         setIsLoading(true);
         try {
-            const res = await fetch(API_BASE_URL);
+            const res = await fetch(ACTIVITES_URL);
             const data = await res.json();
             setActivites(data);
             setError(null);
@@ -65,7 +67,7 @@ const ActiviteModal = ({ isOpen, onClose, onSuccess }) => {
         setError(null);
 
         const method = editingId ? "PUT" : "POST";
-        const url = editingId ? `${API_BASE_URL}${editingId}/` : API_BASE_URL;
+        const url = editingId ? `${ACTIVITES_URL}${editingId}/` : ACTIVITES_URL;
 
         try {
             const res = await fetch(url, {
@@ -110,7 +112,7 @@ const ActiviteModal = ({ isOpen, onClose, onSuccess }) => {
         setError(null);
 
         try {
-            const res = await fetch(`${API_BASE_URL}${id}/`, { method: "DELETE" });
+            const res = await fetch(`${ACTIVITES_URL}${id}/`, { method: "DELETE" });
 
             if (!res.ok) {
                 throw new Error("L'activité n'a pas pu être supprimée (peut-être utilisée par un navire).");

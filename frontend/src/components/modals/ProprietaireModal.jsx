@@ -5,7 +5,7 @@ import {
 } from "react-icons/hi";
 import axios from "axios";
 
-const API_BASE_URL = "http://127.0.0.1:8000/api/proprietaires/";
+import { API_BASE_URL } from "../../config/api";
 
 const ProprietaireModal = ({ isOpen, onClose, onSuccess }) => {
     const [proprietaires, setProprietaires] = useState([]);
@@ -24,7 +24,7 @@ const ProprietaireModal = ({ isOpen, onClose, onSuccess }) => {
     const [formLoading, setFormLoading] = useState(false);
     const [selectedProprietaire, setSelectedProprietaire] = useState(null);
 
-    // Types de propriétaires avec icônes et couleurs
+    
     const typeConfig = {
         particulier: { 
             label: "Particulier", 
@@ -44,7 +44,7 @@ const ProprietaireModal = ({ isOpen, onClose, onSuccess }) => {
         },
         gouvernement: { 
             label: "Gouvernement", 
-            icon: HiOfficeBuilding, // Utiliser HiOfficeBuilding comme alternative
+            icon: HiOfficeBuilding, 
             color: "purple",
             bgColor: "bg-purple-50",
             borderColor: "border-purple-200",

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { HiX } from "react-icons/hi";
+import { API_BASE_URL } from "../../config/api"; // Ajustez le chemin selon votre structure
 
 export default function VisiteModal({ isOpen, onClose, visite, navireId, onSave }) {
   const [formData, setFormData] = useState({
@@ -24,8 +25,8 @@ export default function VisiteModal({ isOpen, onClose, visite, navireId, onSave 
     e.preventDefault();
     try {
       const url = visite 
-        ? `http://127.0.0.1:8000/api/visites/${visite.id}/`
-        : "http://127.0.0.1:8000/api/visites/";
+        ? `${API_BASE_URL}/visites/${visite.id}/`
+        : `${API_BASE_URL}/visites/`;
       
       const method = visite ? "PUT" : "POST";
       

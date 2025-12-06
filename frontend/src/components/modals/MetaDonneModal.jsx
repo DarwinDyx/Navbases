@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { FaTimes, FaPlus, FaEdit, FaShip, FaSpinner, FaExclamationTriangle } from "react-icons/fa";
 import axios from "axios";
+import { API_BASE_URL } from "../../config/api"; // Ajustez le chemin selon votre structure
 
 // --- Définition des Types de Métadonnées (TEXTE fusionné) ---
 const META_TYPES = [
@@ -14,7 +15,8 @@ const META_TYPES = [
     { value: 'IMAGE', label: 'Image' },
 ];
 
-const API_BASE_URL = "http://127.0.0.1:8000/api/meta_donnees/";
+// Constante pour l'URL complète des métadonnées
+const META_DONNEES_URL = `${API_BASE_URL}/meta_donnees/`;
 
 // ====================================================================
 // Composant interne pour le champ de saisie de la VALEUR dynamique
@@ -263,10 +265,10 @@ export default function MetaDonneModal({ isOpen, onClose, metaDonne, navireId, o
         }
         
         try {
-            // ✅ CORRECTION : Vérification sécurisée de l'URL
+            // ✅ CORRECTION : Utilisation de META_DONNEES_URL
             const url = metaDonne && metaDonne.id
-                ? `${API_BASE_URL}${metaDonne.id}/`
-                : API_BASE_URL;
+                ? `${META_DONNEES_URL}${metaDonne.id}/`
+                : META_DONNEES_URL;
             
             const method = metaDonne ? "PUT" : "POST";
             

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { HiX } from "react-icons/hi";
+import { API_BASE_URL } from "../../config/api"; // Ajustez le chemin selon votre structure
 
 export default function DossierModal({ isOpen, onClose, dossier, navireId, onSave }) {
   const [formData, setFormData] = useState({
@@ -24,8 +25,8 @@ export default function DossierModal({ isOpen, onClose, dossier, navireId, onSav
     e.preventDefault();
     try {
       const url = dossier 
-        ? `http://127.0.0.1:8000/api/dossiers/${dossier.id}/`
-        : "http://127.0.0.1:8000/api/dossiers/";
+        ? `${API_BASE_URL}/dossiers/${dossier.id}/`
+        : `${API_BASE_URL}/dossiers/`;
       
       const method = dossier ? "PUT" : "POST";
       

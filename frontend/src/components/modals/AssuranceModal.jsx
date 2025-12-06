@@ -5,8 +5,7 @@ import axios from "axios";
 
 // Assurez-vous d'importer le modal de gestion de l'assureur
 import AssureurModal from "./AssureurModal"; 
-
-const API_BASE_URL = "http://127.0.0.1:8000/api/";
+import { API_BASE_URL } from "../../config/api"; // Ajustez le chemin selon votre structure
 
 /**
  * Modale pour la création et la modification d'un contrat d'Assurance pour un Navire.
@@ -26,7 +25,7 @@ export default function AssuranceModal({ isOpen, onClose, assurance, navireId, o
 
     const fetchAssureurs = async () => {
         try {
-            const res = await axios.get(`${API_BASE_URL}assureurs/`);
+            const res = await axios.get(`${API_BASE_URL}/assureurs/`);
             setAssureurs(Array.isArray(res.data) ? res.data : []);
         } catch (err) {
             console.error("Erreur chargement assureurs:", err);
@@ -108,8 +107,8 @@ export default function AssuranceModal({ isOpen, onClose, assurance, navireId, o
         
         try {
             const url = assurance 
-                ? `${API_BASE_URL}assurances/${assurance.id}/`
-                : `${API_BASE_URL}assurances/`;
+                ? `${API_BASE_URL}/assurances/${assurance.id}/`
+                : `${API_BASE_URL}/assurances/`;
             
             const method = assurance ? "PUT" : "POST";
             
