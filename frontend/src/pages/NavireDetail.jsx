@@ -30,12 +30,19 @@ export default function NavireDetail() {
   // État pour le modal de suppression du navire
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); 
 
-  // --- NOUVEAUX ÉTATS POUR LA SUPPRESSION D'ÉLÉMENT (onglets) ---
+  // État pour le modal d'export PDF
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  // États pour la suppression d'élément (onglets)
   const [isItemDeleteModalOpen, setIsItemDeleteModalOpen] = useState(false);
   const [itemToDeleteId, setItemToDeleteId] = useState(null);
-  const [itemToDeleteType, setItemToDeleteType] = useState(null); // ex: 'moteurs'
-  const [itemToDeleteName, setItemToDeleteName] = useState("");     // ex: 'Moteur principal'
-  // ----------------------------------------------------------------
+  const [itemToDeleteType, setItemToDeleteType] = useState(null);
+  const [itemToDeleteName, setItemToDeleteName] = useState("");
+
+  // États pour les actions en cours
+  const [isDeletingNavire, setIsDeletingNavire] = useState(false);
+  const [isDeletingItem, setIsDeletingItem] = useState(false);
 
   const [modalOpen, setModalOpen] = useState({
     moteurs: false,
@@ -49,11 +56,19 @@ export default function NavireDetail() {
   const [refreshData, setRefreshData] = useState(false);
 
   // ============================================
-  // EXPORT PDF
+  // FONCTIONS D'EXPORT PDF
   // ============================================
 
+  const handleExportPDF = () => {
+    if (navire) {
+      setIsExportModalOpen(true);
+    }
+  };
 
-  const handleExportOnePDF = async () => {
+  const confirmExportPDF = async () => {
+    setIsExportModalOpen(false);
+    setIsExporting(true);
+    
     try {
       const response = await fetch(`${API_BASE_URL}/navires/${id}/export_one_pdf/`);
       if (!response.ok) throw new Error('Erreur lors du téléchargement PDF');
@@ -62,7 +77,7 @@ export default function NavireDetail() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `navire_${navire?.nom_navire || id}.pdf`;
+      a.download = `navire_${navire.nom_navire.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -72,6 +87,8 @@ export default function NavireDetail() {
     } catch (error) {
       console.error('Erreur export PDF:', error);
       showSuccessMessage("❌ Erreur lors de l'export PDF");
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -157,7 +174,7 @@ export default function NavireDetail() {
   }, [fetchNavireData]);
 
   // ============================================
-  // MODALS
+  // GESTION DES MODALES
   // ============================================
   const openModal = (modalType, item = null) => {
     setSelectedItem(item);
@@ -174,24 +191,23 @@ export default function NavireDetail() {
     showSuccessMessage("✅ Données mises à jour avec succès !");
   };
 
+  // ============================================
+  // GESTION DES SUPPRESSIONS
+  // ============================================
 
-  // 1. Fonction appelée par le composant Tabs pour ouvrir le modal
+  // Suppression d'élément (onglets)
   const handleDeleteItem = (type, itemId, itemName) => {
-    // Stocker les détails de l'élément pour l'action de confirmation
     setItemToDeleteId(itemId);
     setItemToDeleteType(type);
     setItemToDeleteName(itemName);
-    setIsItemDeleteModalOpen(true); // Ouvrir la modale de confirmation
+    setIsItemDeleteModalOpen(true);
   };
 
-  // 2. Fonction appelée par le ConfirmationModal pour exécuter l'action réelle
   const confirmItemDelete = async () => {
     if (!itemToDeleteId || !itemToDeleteType) return;
     
-    const type = itemToDeleteType;
-    const itemId = itemToDeleteId;
-    
-    setIsItemDeleteModalOpen(false); // Fermer la modale immédiatement
+    setIsDeletingItem(true);
+    setIsItemDeleteModalOpen(false);
 
     try {
       const endpointMap = {
@@ -202,44 +218,44 @@ export default function NavireDetail() {
         meta_donnees: 'meta_donnees'
       };
 
-      const endpoint = endpointMap[type];
-      if (!endpoint) throw new Error(`Type ${type} non supporté`);
+      const endpoint = endpointMap[itemToDeleteType];
+      if (!endpoint) throw new Error(`Type ${itemToDeleteType} non supporté`);
 
-      const response = await fetch(`${API_BASE_URL}/${endpoint}/${itemId}/`, {
+      const response = await fetch(`${API_BASE_URL}/${endpoint}/${itemToDeleteId}/`, {
         method: 'DELETE',
       });
 
       if (!response.ok) throw new Error('Erreur lors de la suppression');
 
-      showSuccessMessage(`✅ ${type.slice(0, -1)} supprimé avec succès !`);
+      showSuccessMessage(`✅ ${getTypeLabel(itemToDeleteType)} supprimé avec succès !`);
       setRefreshData(prev => !prev);
     } catch (error) {
-      console.error(`Erreur suppression ${type}:`, error);
-      showSuccessMessage(`❌ Erreur lors de la suppression de ${type}`);
+      console.error(`Erreur suppression ${itemToDeleteType}:`, error);
+      showSuccessMessage(`❌ Erreur lors de la suppression de ${getTypeLabel(itemToDeleteType)}`);
     } finally {
-      // Réinitialiser les états après la tentative
+      setIsDeletingItem(false);
       setItemToDeleteId(null);
       setItemToDeleteType(null);
       setItemToDeleteName("");
     }
   };
 
-
-
-
-  // 1. Fonction appelée par NavireActions pour ouvrir le modal
-  const handleDelete = () => {
+  // Suppression du navire
+  const handleDeleteNavire = () => {
     if (navire) {
-        setIsDeleteModalOpen(true);
+      setIsDeleteModalOpen(true);
     }
   };
 
-  // 2. Fonction appelée par le ConfirmationModal pour exécuter l'action
-  const confirmDelete = async () => {
-    setIsDeleteModalOpen(false); // Fermer le modal
+  const confirmDeleteNavire = async () => {
+    setIsDeletingNavire(true);
+    setIsDeleteModalOpen(false);
     
     try {
-      const response = await fetch(`${API_BASE_URL}/navires/${id}/`, { method: 'DELETE' });
+      const response = await fetch(`${API_BASE_URL}/navires/${id}/`, { 
+        method: 'DELETE' 
+      });
+      
       if (!response.ok) throw new Error('Erreur lors de la suppression du navire');
 
       showSuccessMessage("✅ Navire supprimé avec succès !");
@@ -247,12 +263,28 @@ export default function NavireDetail() {
     } catch (error) {
       console.error('Erreur suppression navire:', error);
       showSuccessMessage("❌ Erreur lors de la suppression du navire");
+    } finally {
+      setIsDeletingNavire(false);
     }
   };
 
+  // ============================================
+  // FONCTIONS UTILITAIRES
+  // ============================================
   const showSuccessMessage = (message) => {
     setSuccessMessage(message);
     setTimeout(() => setSuccessMessage(""), 5000);
+  };
+
+  const getTypeLabel = (type) => {
+    const labels = {
+      moteurs: "le moteur",
+      assurances: "l'assurance", 
+      visites: "la visite",
+      dossiers: "le dossier",
+      meta_donnees: "la métadonnée"
+    };
+    return labels[type] || "l'élément";
   };
 
   // ============================================
@@ -265,6 +297,7 @@ export default function NavireDetail() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-8">
 
+        {/* Message de succès/erreur */}
         {successMessage && (
           <div className="mb-6">
             <div className={`border px-6 py-4 rounded-2xl shadow-sm flex items-center gap-3 ${
@@ -276,6 +309,25 @@ export default function NavireDetail() {
                 <div className="w-2 h-2 bg-white rounded-full"></div>
               </div>
               <span className="font-medium">{successMessage.replace(/^[✅❌]\s*/, '')}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Message d'export en cours */}
+        {isExporting && (
+          <div className="mb-6">
+            <div className="border px-6 py-4 rounded-2xl shadow-sm flex items-center gap-3 bg-blue-50 border-blue-200 text-blue-700">
+              <div className="w-5 h-5 rounded-full flex items-center justify-center bg-blue-600">
+                <div className="w-2 h-2 bg-white rounded-full"></div>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="font-medium">Export PDF en cours...</span>
+                <div className="flex space-x-1">
+                  <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
+                  <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse" style={{animationDelay: '0.2s'}}></div>
+                  <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse" style={{animationDelay: '0.4s'}}></div>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -296,13 +348,13 @@ export default function NavireDetail() {
         <div className="pt-8 border-t border-slate-200">
           <NavireActions 
             onEdit={() => navigate(`/navires/edit/${navire.id}`)}
-            onDelete={handleDelete} // Appel de la fonction qui ouvre le modal navire
-            onExportPDF={handleExportOnePDF}
+            onDelete={handleDeleteNavire}
+            onExportPDF={handleExportPDF}
             navireId={id}
           />
         </div>
 
-        
+        {/* Modales des onglets */}
         <MoteurModal
           isOpen={modalOpen.moteurs}
           onClose={() => closeModal("moteurs")}
@@ -342,29 +394,67 @@ export default function NavireDetail() {
           navireId={id}
           onSave={handleSave}
         />
-        
 
-        {itemToDeleteId && ( 
+        {/* Modal de confirmation pour suppression d'élément */}
+        {isItemDeleteModalOpen && itemToDeleteId && (
           <ConfirmationModal
             isOpen={isItemDeleteModalOpen}
             onClose={() => setIsItemDeleteModalOpen(false)}
-            onConfirm={confirmItemDelete} // Exécute l'action DELETE
-            title={`Supprimer ${itemToDeleteType?.slice(0, -1)}`}
-            message={`Êtes-vous certain de vouloir supprimer définitivement "${itemToDeleteName}" dans l'onglet "${itemToDeleteType}" ?`}
-            confirmButtonText="Supprimer l'élément"
-            confirmButtonClassName="bg-red-600 hover:bg-red-700 focus:ring-red-500"
+            onConfirm={confirmItemDelete}
+            title={`Supprimer ${getTypeLabel(itemToDeleteType)}`}
+            message={
+              <div>
+                Êtes-vous certain de vouloir supprimer définitivement 
+                <span className="font-bold text-black"> "{itemToDeleteName}" </span>
+                {itemToDeleteType ? `dans l'onglet "${itemToDeleteType}"` : ''} ?
+              </div>
+            }
+            confirmButtonText="Supprimer"
+            type="danger"
+            isLoading={isDeletingItem}
+            disableConfirm={isDeletingItem}
           />
         )}
 
-        {navire && ( 
+        {/* Modal de confirmation pour suppression du navire */}
+        {isDeleteModalOpen && navire && (
           <ConfirmationModal
             isOpen={isDeleteModalOpen}
             onClose={() => setIsDeleteModalOpen(false)}
-            onConfirm={confirmDelete}
+            onConfirm={confirmDeleteNavire}
             title="Confirmer la suppression du navire"
-            message={`Êtes-vous certain de vouloir supprimer définitivement le navire "${navire.nom_navire}" ? Cette action est irréversible et supprimera toutes les données associées.`}
+            message={
+              <div>
+                Êtes-vous certain de vouloir supprimer définitivement le navire 
+                <span className="font-bold text-black"> "{navire.nom_navire}" </span>
+                ? Cette action est irréversible et supprimera toutes les données associées.
+              </div>
+            }
             confirmButtonText="Supprimer définitivement"
-            confirmButtonClassName="bg-red-600 hover:bg-red-700 focus:ring-red-500"
+            type="danger"
+            isLoading={isDeletingNavire}
+            disableConfirm={isDeletingNavire}
+          />
+        )}
+
+        {/* Modal de confirmation pour export PDF */}
+        {isExportModalOpen && navire && (
+          <ConfirmationModal
+            isOpen={isExportModalOpen}
+            onClose={() => setIsExportModalOpen(false)}
+            onConfirm={confirmExportPDF}
+            title="Exporter le navire en PDF"
+            message={
+              <div>
+                Générer un PDF complet pour le navire 
+                <span className="font-bold text-black"> "{navire.nom_navire}" </span>
+                ? L'export peut prendre quelques secondes.
+              </div>
+            }
+            confirmButtonText="Générer le PDF"
+            type="info"
+            isLoading={isExporting}
+            disableConfirm={isExporting}
           />
         )}
 

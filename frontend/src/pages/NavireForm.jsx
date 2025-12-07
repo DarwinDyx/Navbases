@@ -1,13 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import {
-  FaArrowLeft,
   FaRegCheckCircle,
 } from "react-icons/fa";
 
 import ProprietaireModal from "../components/modals/ProprietaireModal";
 import ActiviteModal from "../components/modals/ActiviteModal";
+import ConfirmationModal from "../components/modals/ConfirmationModal";
 import NavireFormHeader from "../components/navire-form/NavireFormHeader";
 import GeneralInfoSection from "../components/navire-form/GeneralInfoSection";
 import ConstructionSection from "../components/navire-form/ConstructionSection";
@@ -51,6 +51,16 @@ const NavireForm = () => {
   const [isActiviteModalOpen, setIsActiviteModalOpen] = useState(false);
   const [formError, setFormError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
+  
+  // États pour la confirmation
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const originalNavireData = useRef(null);
+  const originalSelectedActivites = useRef([]);
+  const originalSelectedProprietaire = useRef(null);
+  const formInitialized = useRef(false);
 
   const loadFromCache = () => {
     if (id) {
@@ -60,11 +70,13 @@ const NavireForm = () => {
       
       if (cachedNavire) {
         const data = JSON.parse(cachedNavire);
-        setNavire({
+        const newNavireData = {
           ...data,
           proprietaire_id: data.proprietaire?.id?.toString() || "", 
           photo_navire: null,
-        });
+        };
+        
+        setNavire(newNavireData);
 
         if (data.proprietaire) {
           const option = {
@@ -72,11 +84,14 @@ const NavireForm = () => {
             label: data.proprietaire.nom_proprietaire + (data.proprietaire.contact ? ` (${data.proprietaire.contact})` : '')
           };
           setSelectedProprietaireOption(option);
+          originalSelectedProprietaire.current = option;
         } else {
           setSelectedProprietaireOption(null);
+          originalSelectedProprietaire.current = null;
         }
         
         setSelectedActivites(data.activites?.map(a => a.id) || []);
+        originalSelectedActivites.current = data.activites?.map(a => a.id) || [];
         
         if (data.photo_navire) {
           const photoUrl = data.photo_navire.startsWith('http') 
@@ -84,6 +99,10 @@ const NavireForm = () => {
             : `${API_BASE_URL.replace('/api', '')}${data.photo_navire}`;
           setImagePreview(photoUrl);
         }
+        
+        // Stocker les données originales pour comparaison
+        originalNavireData.current = { ...newNavireData };
+        
         return true;
       }
       
@@ -120,6 +139,7 @@ const NavireForm = () => {
     if (cacheLoaded && id) {
       setIsEditing(true);
       setIsLoading(false);
+      formInitialized.current = true;
       Promise.all([fetchProprietaires(), fetchActivites()]);
     } else {
       Promise.all([fetchProprietaires(), fetchActivites()]).finally(() => {
@@ -128,11 +148,13 @@ const NavireForm = () => {
           axios.get(`${API_BASE_URL}/navires/${id}/`)
             .then(res => {
               const data = res.data;
-              setNavire({
+              const newNavireData = {
                 ...data,
                 proprietaire_id: data.proprietaire?.id?.toString() || "", 
                 photo_navire: null,
-              });
+              };
+              
+              setNavire(newNavireData);
 
               if (data.proprietaire) {
                 const option = {
@@ -140,11 +162,14 @@ const NavireForm = () => {
                   label: data.proprietaire.nom_proprietaire + (data.proprietaire.contact ? ` (${data.proprietaire.contact})` : '')
                 };
                 setSelectedProprietaireOption(option);
+                originalSelectedProprietaire.current = option;
               } else {
                 setSelectedProprietaireOption(null);
+                originalSelectedProprietaire.current = null;
               }
               
-              setSelectedActivites(data.activites?.map(a => a.id) || []); 
+              setSelectedActivites(data.activites?.map(a => a.id) || []);
+              originalSelectedActivites.current = data.activites?.map(a => a.id) || [];
 
               if (data.photo_navire) {
                 const photoUrl = data.photo_navire.startsWith('http') 
@@ -154,6 +179,10 @@ const NavireForm = () => {
               }
               
               localStorage.setItem(`navire-${id}`, JSON.stringify(data));
+              
+              // Stocker les données originales pour comparaison
+              originalNavireData.current = { ...newNavireData };
+              formInitialized.current = true;
             })
             .catch(err => {
               console.error("Erreur chargement navire:", err);
@@ -162,10 +191,36 @@ const NavireForm = () => {
             .finally(() => setIsLoading(false));
         } else {
           setIsLoading(false);
+          formInitialized.current = true;
+          originalNavireData.current = { ...navire };
+          originalSelectedActivites.current = [];
+          originalSelectedProprietaire.current = null;
         }
       });
     }
   }, [id]);
+
+  // Vérifier les modifications non sauvegardées
+  useEffect(() => {
+    if (formInitialized.current) {
+      // Comparer les données du navire
+      const navireHasChanges = originalNavireData.current 
+        ? JSON.stringify({...navire, photo_navire: null}) !== JSON.stringify({...originalNavireData.current, photo_navire: null})
+        : false;
+      
+      // Comparer les activités sélectionnées
+      const activitesHasChanges = 
+        JSON.stringify([...selectedActivites].sort()) !== 
+        JSON.stringify([...originalSelectedActivites.current].sort());
+      
+      // Comparer le propriétaire sélectionné
+      const proprietaireHasChanges = 
+        JSON.stringify(selectedProprietaireOption) !== 
+        JSON.stringify(originalSelectedProprietaire.current);
+      
+      setHasUnsavedChanges(navireHasChanges || activitesHasChanges || proprietaireHasChanges);
+    }
+  }, [navire, selectedActivites, selectedProprietaireOption]);
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
@@ -177,10 +232,10 @@ const NavireForm = () => {
     } else {
       setNavire({ ...navire, [name]: value });
     }
+    if (formError) setFormError(null);
   };
 
   const handleProprietaireSelectChange = (selectedOption) => {
-    console.log("Selected option:", selectedOption);
     setSelectedProprietaireOption(selectedOption);
     const proprietaireId = selectedOption ? selectedOption.value : "";
     setNavire(prev => ({ 
@@ -190,7 +245,6 @@ const NavireForm = () => {
   };
 
   const handleRemoveProprietaire = () => {
-    console.log("Explicit removal of owner");
     setSelectedProprietaireOption(null);
     setNavire(prev => ({ 
       ...prev, 
@@ -242,9 +296,81 @@ const NavireForm = () => {
     label: p.nom_proprietaire + (p.contact ? ` (${p.contact})` : ''),
   }));
 
-  const handleSubmit = async (e) => {
+  // Fonction pour gérer l'annulation
+  const handleCancelClick = () => {
+    if (hasUnsavedChanges) {
+      setIsCancelModalOpen(true);
+    } else {
+      // Redirection selon le mode
+      if (isEditing && id) {
+        navigate(`/navires/${id}`); // Mode modification → détails
+      } else {
+        navigate("/navires"); // Mode ajout → liste
+      }
+    }
+  };
+
+  // Confirmation d'annulation
+  const confirmCancel = () => {
+    setIsCancelModalOpen(false);
+    // Redirection selon le mode
+    if (isEditing && id) {
+      navigate(`/navires/${id}`); // Mode modification → détails
+    } else {
+      navigate("/navires"); // Mode ajout → liste
+    }
+  };
+
+  // Validation du formulaire
+  const validateForm = () => {
+    setFormError(null);
+    
+    if (!navire.nom_navire.trim()) {
+      setFormError("❌ Le nom du navire est requis.");
+      return false;
+    }
+    
+    if (!navire.num_immatricule.trim()) {
+      setFormError("❌ Le numéro d'immatriculation est requis.");
+      return false;
+    }
+    
+    if (!navire.type_navire) {
+      setFormError("❌ Le type de navire est requis.");
+      return false;
+    }
+    
+    // Validation pour la création seulement
+    if (!isEditing) {
+      if (!navire.proprietaire_id) {
+        setFormError("❌ Un propriétaire doit être sélectionné.");
+        return false;
+      }
+      
+      if (selectedActivites.length === 0) {
+        setFormError("❌ Au moins une activité doit être sélectionnée.");
+        return false;
+      }
+    }
+    
+    return true;
+  };
+
+  // Ouvrir le modal de confirmation avant sauvegarde
+  const handleSubmitClick = (e) => {
     e.preventDefault();
-    setIsLoading(true);
+    
+    if (!validateForm()) {
+      return;
+    }
+    
+    setIsSaveModalOpen(true);
+  };
+
+  // Fonction pour exécuter la sauvegarde après confirmation
+  const handleConfirmSubmit = async () => {
+    setIsSubmitting(true);
+    setIsSaveModalOpen(false);
     setFormError(null);
     setSuccessMessage(null);
 
@@ -269,6 +395,7 @@ const NavireForm = () => {
     try {
       let res;
       if (isEditing) {
+        // MODE MODIFICATION
         res = await axios.put(
           `${API_BASE_URL}/navires/${id}/`,
           formData,
@@ -276,19 +403,35 @@ const NavireForm = () => {
         );
         setSuccessMessage("✅ Navire modifié avec succès !");
         
+        // Mettre à jour les données originales
+        originalNavireData.current = { ...navire, photo_navire: null };
+        originalSelectedActivites.current = [...selectedActivites];
+        originalSelectedProprietaire.current = selectedProprietaireOption;
+        setHasUnsavedChanges(false);
+        
         localStorage.setItem(`navire-${id}`, JSON.stringify(res.data));
+        
+        // Redirection vers les détails après modification
+        setTimeout(() => {
+          navigate(`/navires/${id}`);
+        }, 1500);
+        
       } else {
+        // MODE AJOUT
         res = await axios.post(
           `${API_BASE_URL}/navires/`,
           formData,
           { headers: { "Content-Type": "multipart/form-data" } }
         );
-        setSuccessMessage("✅ Navire ajouté avec succès ! Redirection...");
+        setSuccessMessage("✅ Navire ajouté avec succès ! Redirection vers la liste...");
         
         localStorage.setItem(`navire-${res.data.id}`, JSON.stringify(res.data));
+        
+        // Redirection vers la liste après ajout
+        setTimeout(() => {
+          navigate("/navires");
+        }, 1500);
       }
-      
-      navigate(`/navires/${res.data.id}`);
       
     } catch (err) {
       console.error("Erreur lors de l'enregistrement :", err.response?.data || err);
@@ -300,7 +443,23 @@ const NavireForm = () => {
         setFormError("❌ Erreur lors de l'enregistrement du navire. Veuillez vérifier les champs.");
       }
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
+    }
+  };
+
+  // Fonction pour formater les valeurs pour l'affichage
+  const formatFieldValue = (fieldName, value) => {
+    if (!value && value !== 0) return "(vide)";
+    
+    switch (fieldName) {
+      case 'type_navire':
+      case 'nature_coque':
+        return value;
+      case 'nbr_passager':
+      case 'nbr_equipage':
+        return value.toString();
+      default:
+        return value;
     }
   };
 
@@ -322,6 +481,8 @@ const NavireForm = () => {
         <NavireFormHeader 
           isEditing={isEditing}
           navigate={navigate}
+          hasUnsavedChanges={hasUnsavedChanges}
+          navireId={id}
         />
 
         {formError && (
@@ -335,17 +496,21 @@ const NavireForm = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmitClick} className="space-y-8">
           
           <GeneralInfoSection 
             navire={navire}
             handleChange={handleChange}
+            originalData={originalNavireData.current}
+            hasUnsavedChanges={hasUnsavedChanges}
           />
 
           <ConstructionSection 
             navire={navire}
             handleChange={handleChange}
             natureCoqueOptions={natureCoqueOptions}
+            originalData={originalNavireData.current}
+            hasUnsavedChanges={hasUnsavedChanges}
           />
 
           <ActivitesSection 
@@ -353,6 +518,8 @@ const NavireForm = () => {
             selectedActivites={selectedActivites}
             handleActiviteChange={handleActiviteChange}
             onOpenModal={() => setIsActiviteModalOpen(true)}
+            originalActivites={originalSelectedActivites.current}
+            hasUnsavedChanges={hasUnsavedChanges}
           />
 
           <OwnerPhotoSection 
@@ -364,12 +531,16 @@ const NavireForm = () => {
             onOpenModal={() => setIsProprietaireModalOpen(true)}
             imagePreview={imagePreview}
             onRemoveProprietaire={handleRemoveProprietaire}
+            originalProprietaire={originalSelectedProprietaire.current}
+            hasUnsavedChanges={hasUnsavedChanges}
           />
 
           <FormActions 
-            isLoading={isLoading}
+            isLoading={isSubmitting}
             isEditing={isEditing}
-            navigate={navigate}
+            onCancel={handleCancelClick}
+            onSubmit={handleSubmitClick}
+            hasUnsavedChanges={hasUnsavedChanges}
           />
         </form>
       </div>
@@ -385,6 +556,133 @@ const NavireForm = () => {
           onClose={() => setIsActiviteModalOpen(false)}
           onSuccess={handleActiviteSuccess}
       />
+
+      {/* Modal de confirmation pour la sauvegarde */}
+      {isSaveModalOpen && (
+        <ConfirmationModal
+          isOpen={isSaveModalOpen}
+          onClose={() => setIsSaveModalOpen(false)}
+          onConfirm={handleConfirmSubmit}
+          title={isEditing ? "Modifier le navire" : "Ajouter un navire"}
+          message={
+            <div className="space-y-2">
+              <p>
+                {isEditing ? "Confirmez-vous la modification du navire" : "Confirmez-vous l'ajout du navire"} 
+                <span className="font-bold text-black"> "{navire.nom_navire}"</span> ?
+              </p>
+              <p className="text-sm text-slate-600">
+                {isEditing 
+                  ? "Vous serez redirigé vers la page de détails du navire."
+                  : "Vous serez redirigé vers la liste des navires."
+                }
+              </p>
+              <div className="bg-slate-50 p-3 rounded-lg">
+                <p className="font-medium text-slate-700">Détails du navire :</p>
+                <ul className="text-sm text-slate-600 mt-1 space-y-1">
+                  <li className="flex">
+                    <span className="w-40 font-medium">Nom :</span>
+                    <span className="font-bold text-black">{formatFieldValue('nom_navire', navire.nom_navire)}</span>
+                  </li>
+                  <li className="flex">
+                    <span className="w-40 font-medium">Immatriculation :</span>
+                    <span className="font-bold text-black">{formatFieldValue('num_immatricule', navire.num_immatricule)}</span>
+                  </li>
+                  <li className="flex">
+                    <span className="w-40 font-medium">Type :</span>
+                    <span className="font-bold text-black">{formatFieldValue('type_navire', navire.type_navire)}</span>
+                  </li>
+                  {selectedProprietaireOption && (
+                    <li className="flex">
+                      <span className="w-40 font-medium">Propriétaire :</span>
+                      <span className="font-bold text-black">{selectedProprietaireOption.label}</span>
+                    </li>
+                  )}
+                  {selectedActivites.length > 0 && (
+                    <li className="flex">
+                      <span className="w-40 font-medium">Activités :</span>
+                      <span className="font-bold text-black">{selectedActivites.length} activité(s)</span>
+                    </li>
+                  )}
+                </ul>
+              </div>
+            </div>
+          }
+          confirmButtonText={isEditing ? "Modifier" : "Ajouter"}
+          type={isEditing ? "warning" : "info"}
+          isLoading={isSubmitting}
+          disableConfirm={isSubmitting}
+          cancelButtonText="Annuler"
+        />
+      )}
+
+      {/* Modal de confirmation pour annuler avec modifications non sauvegardées */}
+      {isCancelModalOpen && (
+        <ConfirmationModal
+          isOpen={isCancelModalOpen}
+          onClose={() => setIsCancelModalOpen(false)}
+          onConfirm={confirmCancel}
+          title="Modifications non sauvegardées"
+          message={
+            <div>
+              <p className="mb-2">Vous avez des modifications non sauvegardées pour le navire :</p>
+              {navire.nom_navire && (
+                <p className="font-bold text-black mb-3">"{navire.nom_navire}"</p>
+              )}
+              <div className="bg-slate-50 p-3 rounded-lg mb-3 space-y-1">
+                {navire.nom_navire !== originalNavireData.current?.nom_navire && (
+                  <p className="flex items-start">
+                    <span className="mr-2">•</span>
+                    <span>
+                      Nom du navire : <span className="font-bold text-black">{formatFieldValue('nom_navire', navire.nom_navire)}</span>
+                    </span>
+                  </p>
+                )}
+                {navire.num_immatricule !== originalNavireData.current?.num_immatricule && (
+                  <p className="flex items-start">
+                    <span className="mr-2">•</span>
+                    <span>
+                      Immatriculation : <span className="font-bold text-black">{formatFieldValue('num_immatricule', navire.num_immatricule)}</span>
+                    </span>
+                  </p>
+                )}
+                {navire.type_navire !== originalNavireData.current?.type_navire && (
+                  <p className="flex items-start">
+                    <span className="mr-2">•</span>
+                    <span>
+                      Type : <span className="font-bold text-black">{formatFieldValue('type_navire', navire.type_navire)}</span>
+                    </span>
+                  </p>
+                )}
+                {navire.proprietaire_id !== originalNavireData.current?.proprietaire_id && (
+                  <p className="flex items-start">
+                    <span className="mr-2">•</span>
+                    <span>
+                      Propriétaire : <span className="font-bold text-black">{selectedProprietaireOption ? selectedProprietaireOption.label : "(aucun)"}</span>
+                    </span>
+                  </p>
+                )}
+                {JSON.stringify([...selectedActivites].sort()) !== JSON.stringify([...originalSelectedActivites.current].sort()) && (
+                  <p className="flex items-start">
+                    <span className="mr-2">•</span>
+                    <span>
+                      Activités : <span className="font-bold text-black">{selectedActivites.length} activité(s) sélectionnée(s)</span>
+                    </span>
+                  </p>
+                )}
+              </div>
+              <p className="mt-2 text-gray-600">
+                {isEditing 
+                  ? "Voulez-vous vraiment quitter sans sauvegarder ? Vous serez redirigé vers la page de détails du navire."
+                  : "Voulez-vous vraiment quitter sans sauvegarder ? Vous serez redirigé vers la liste des navires."
+                }
+              </p>
+            </div>
+          }
+          confirmButtonText="Quitter sans sauvegarder"
+          type="danger"
+          cancelButtonText="Continuer l'édition"
+        />
+      )}
     </div>
   );
 };

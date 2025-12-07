@@ -29,7 +29,7 @@ DEBUG = True
 ALLOWED_HOSTS = ['localhost', 
     '127.0.0.1', 
     '0.0.0.0', 
-    '172.10.17.152',
+    '172.10.17.119',
     '192.168.137.1',
     '192.168.88.59']
 
@@ -142,7 +142,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173", 
-    "http://172.10.17.152:5173",
+    "http://172.10.17.119:5173",
     "http://192.168.137.1:5173",
     "http://192.168.88.59:5173",
 ]
@@ -154,4 +154,5 @@ CORS_ALLOW_CREDENTIALS = True
 
 PDFKIT_CONFIG = {
     'wkhtmltopdf': 'C:/Program Files/wkhtmltopdf/bin/wkhtmltopdf.exe',
+    'wkhtmltopdf': '/usr/bin/wkhtmltopdf',
 }
